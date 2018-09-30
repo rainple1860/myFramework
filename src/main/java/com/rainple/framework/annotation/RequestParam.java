@@ -1,0 +1,10 @@
+package com.rainple.framework.annotation;
+
+import java.lang.annotation.*;
+@Inherited
+@Target({ElementType.PARAMETER})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RequestParam {
+    String value();
+}
