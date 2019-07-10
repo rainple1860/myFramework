@@ -1,4 +1,4 @@
-package com.rainple.framework.service.impl;
+package com.rainple.framework.service.aa;
 
 import com.rainple.framework.annotation.Service;
 import com.rainple.framework.bean.User;

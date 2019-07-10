@@ -71,6 +71,15 @@ public class ClassUtils {
         return String.valueOf(chars);
     }
 
+    public static Class forName(String clazz) {
+        try {
+            return Class.forName(clazz);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public static String uperFirstCase(String str){
         return String.valueOf(str.charAt(0)).toUpperCase() + str.substring(1,str.length());
     }

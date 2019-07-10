@@ -19,13 +19,15 @@ public class UserController {
 
     @RequestMapping("/add")
     @ResponseBody
-    public String add( String name, Integer age){
+    public User add( String name, Integer age){
         return userService.add(name,age);
     }
 
-    @RequestMapping("/addUser")
     @ResponseBody
-    public User addUser(User user){
+    @RequestMapping("/user/get")
+    public User add1(String name) {
+        User user = new User();
+        user.setName(name);
         return user;
     }
 
@@ -61,8 +63,8 @@ public class UserController {
 
     @RequestMapping("/get/{name}/{age}")
     @ResponseBody
-    public String get1(@PathVariable("name")String name,@PathVariable("age") Integer age){
-        return userService.add(name,age);
+    public User get1(@PathVariable("name")String name,@PathVariable("age") Integer age){
+        return userService.add(name, age);
     }
 
     @RequestMapping("/get")

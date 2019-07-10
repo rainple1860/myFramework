@@ -1,8 +1,10 @@
 package com.rainple.framework.service;
 
+import com.rainple.framework.bean.User;
+
 public interface UserService {
 
-    String add(String name, Integer age);
+    User add(String name, Integer age);
 
     String get(String name);
 

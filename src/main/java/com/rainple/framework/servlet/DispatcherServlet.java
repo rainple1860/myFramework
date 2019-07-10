@@ -8,6 +8,8 @@ import com.rainple.framework.annotation.Aspect;
 import com.rainple.framework.annotation.aspect.After;
 import com.rainple.framework.annotation.aspect.Before;
 import com.rainple.framework.aop.*;
+import com.rainple.framework.aop.advice.AdviceChain;
+import com.rainple.framework.aop.advice.AdviceParser;
 import com.rainple.framework.core.*;
 import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
@@ -59,6 +61,11 @@ public class DispatcherServlet extends HttpServlet {
         doLoadConfig(config);
         //扫包
         doScanPack(ApplicationConfig.applicationConfig.getProperty(ConfigEnum.SCANPACKAGE.getName()));
+
+        AdviceParser adviceParser = new AdviceParser(beanNames);
+        AdviceChain adviceChain = adviceParser.parse("* com.rainple.framework.*.impl.*.*.add(java.lang.String,java.lang.Integer)", null, AdviceChain.BEFORE);
+        System.out.println(adviceChain);
+
         //初始化bean
         doInstanceBeans();
         doAspect();
@@ -73,13 +80,18 @@ public class DispatcherServlet extends HttpServlet {
         String contextPath = req.getContextPath();
         //统一格式，方便后边的处理
         uri = uri.replace(contextPath,"");
-        //解析前端传进来的url，如果有通配符则进行封装，找到handlerMapping中对应的类
-        Map findMap = findUrlFromHandlerMapping(uri);
-        //uri中参数位置的映射
-        Map<String,String> locationMap = (Map<String, String>) findMap.get("pv");
-        //这里得到的是handlerMapping中的uri
-        String findUri = (String) findMap.get("uri");
-        requestMappingHandler mappingHandler = handlerMapping.get(findUri);
+        requestMappingHandler mappingHandler;
+        mappingHandler = handlerMapping.get(uri);
+        Map<String, String> locationMap = null;
+        if (mappingHandler == null) {
+            //解析前端传进来的url，如果有通配符则进行封装，找到handlerMapping中对应的类
+            Map findMap = findUrlFromHandlerMapping(uri);
+            //uri中参数位置的映射
+            locationMap = (Map<String, String>) findMap.get("pv");
+            //这里得到的是handlerMapping中的uri
+            String findUri = (String) findMap.get("uri");
+            mappingHandler = handlerMapping.get(findUri);
+        }
         if (mappingHandler != null){
             Object instance = mappingHandler.getInstance();
             Method method = mappingHandler.getMethod();
@@ -177,14 +189,19 @@ public class DispatcherServlet extends HttpServlet {
                     String[] pvs = null;
                     if (url.contains("{")){
                         int of = url.indexOf("{");
-                        String pv = url.substring(of,url.length());
+                        String pv = url.substring(of);
+                        //获取到占位符的名字
                         pvs = parsePathVariable(pv);
                     }
                     String path = (baseUrl + url).replaceAll("/+","/");
+                    if (handlerMapping.containsKey(path)) {
+                        logger.error(path + "已存在",new RuntimeException());
+                        System.exit(0);
+                    }
                     //将映射关系封装成requestMappingHandler内部类
                     requestMappingHandler mappingHandler = new requestMappingHandler(entry.getValue(),method,pvs);
                     handlerMapping.put(path,mappingHandler);
-                    logger.info("完成handlerMapping映射关系：" + path);
+                    logger.info("完成映射：[\""+ path + "\"<=>" + method +"]");
                 }
             }
         }
@@ -434,8 +451,9 @@ public class DispatcherServlet extends HttpServlet {
                             String pv = ((PathVariable) parameterAnnotations[i][0]).value().trim();
                             //获取占位符对应的值
                             reqVal = locationMap.get(pv);
-                            if (reqVal == null)
-                                throw new RuntimeException("无法从请求参数中获取值，请检查：" + method.getName());
+                            if (reqVal == null) {
+                                logger.error("无法从请求参数中获取值，请检查：" + method.getName(),new RuntimeException());
+                            }
                             isPathVariableAnno = true;
                         }
 
