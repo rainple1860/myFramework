@@ -44,36 +44,40 @@ public class DispatcherServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        req.setCharacterEncoding("gbk");
-        resp.setCharacterEncoding("gbk");
+        req.setCharacterEncoding("utf-8");
+        resp.setCharacterEncoding("utf-8");
         doPost(req,resp);
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) {
         doDispatcher(req,resp);
     }
 
     @Override
-    public void init(ServletConfig config) throws ServletException {
-        logger.info("开始初始化容器");
-        //加载配置文件
-        doLoadConfig(config);
-        //扫包
-        doScanPack(ApplicationConfig.applicationConfig.getProperty(ConfigEnum.SCANPACKAGE.getName()));
+    public void init(ServletConfig config) {
+        try {
+            logger.info("开始初始化容器");
+            //加载配置文件
+            doLoadConfig(config);
+            //扫包
+            doScanPack(ApplicationConfig.applicationConfig.getProperty(ConfigEnum.SCANPACKAGE.getName()));
 
-        AdviceParser adviceParser = new AdviceParser(beanNames);
-        AdviceChain adviceChain = adviceParser.parse("* com.rainple.framework.*.impl.*.*.add(java.lang.String,java.lang.Integer)", null, AdviceChain.BEFORE);
-        System.out.println(adviceChain);
+            AdviceParser adviceParser = new AdviceParser(beanNames);
+            AdviceChain adviceChain = adviceParser.parse("* com.rainple.framework.Test.impl.*.*(..)", null, AdviceChain.BEFORE);
+            System.out.println(adviceChain);
 
-        //初始化bean
-        doInstanceBeans();
-        doAspect();
-        //注入
-        DoIoc();
-        //处理映射关系
-        handlerMapping();
-        logger.info("容器初始化完毕");
+            //初始化bean
+            doInstanceBeans();
+            doAspect();
+            //注入
+            DoIoc();
+            //处理映射关系
+            handlerMapping();
+            logger.info("容器初始化完毕");
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     private void doDispatcher(HttpServletRequest req, HttpServletResponse resp) {
         String uri = req.getRequestURI();

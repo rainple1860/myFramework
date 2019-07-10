@@ -102,8 +102,15 @@ public class AdviceParser {
                     }
                 }
             }
-            System.out.println(eqList);
+            matchAdvice(type,adviceChain,eqList);
         }else {
+            matchAdvice(type, adviceChain, Collections.singletonList(clazz));
+        }
+        return adviceChain;
+    }
+
+    private void matchAdvice(String type, AdviceChain adviceChain, List<String> classes) {
+        for (String clazz : classes) {
             Class cl = ClassUtils.forName(clazz);
             assert cl != null;
             for (Method method : cl.getDeclaredMethods()) {
@@ -127,7 +134,6 @@ public class AdviceParser {
                     adviceChain.addAfter(method);
             }
         }
-        return adviceChain;
     }
 
     private boolean parametersMatch(Method method) {
