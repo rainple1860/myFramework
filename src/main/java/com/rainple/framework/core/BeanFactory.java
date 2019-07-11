@@ -1,11 +1,13 @@
 package com.rainple.framework.core;
 
+import com.rainple.framework.annotation.Autowired;
 import com.rainple.framework.annotation.Service;
 import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,7 +38,7 @@ public class BeanFactory {
 
     public Object putBean(String beanName, Object instance){
         if (ioc.containsKey(beanName)) {
-            Class aClass = ClassUtils.forName(beanName);
+            /*Class aClass = ClassUtils.forName(beanName);
             assert aClass != null;
             if (aClass.isInterface()) {
                 if (!aClass.isAnnotationPresent(Service.class))
@@ -50,7 +52,7 @@ public class BeanFactory {
                 }
             }else {
                 throw new RuntimeException("容器中已存在beanName：" + beanName);
-            }
+            }*/
             return ioc.get(beanName);
         }
         return ioc.put(beanName, instance);
@@ -69,4 +71,21 @@ public class BeanFactory {
         ioc.clear();
     }
 
+    public Object createBean(Class beanClass) {
+
+        /**
+         * 递归实例依赖的bean，无法解决循环依赖的问题
+         */
+        for (Field field : beanClass.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Class<?> fieldType = field.getType();
+                Object bean = getBean(fieldType);
+                if (bean == null)
+                    createBean(fieldType);
+            }
+        }
+        Object newInstance = ClassUtils.newInstance(beanClass);
+        putBean(ClassUtils.lowerFirstCase(beanClass.getSimpleName()),newInstance);
+        return newInstance;
+    }
 }

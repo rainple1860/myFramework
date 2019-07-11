@@ -18,10 +18,10 @@ import java.util.List;
  **/
 public class BeanInstanceHandlerChain {
 
-    List<BeanInstanceHandler> handlers;
-    List<String> beanNames;
+    private List<BeanInstanceHandler> handlers;
+    private List<Class> beanNames;
     private int index = -1;
-    public BeanInstanceHandlerChain(List<BeanInstanceHandler> handlers,List<String> beanNames){
+    public BeanInstanceHandlerChain(List<BeanInstanceHandler> handlers,List<Class> beanNames){
         this.handlers = handlers;
         this.beanNames = beanNames;
     }

@@ -1,6 +1,7 @@
 package com.rainple.framework.aop.advice;
 
 import com.rainple.framework.Constant.ConfigEnum;
+import com.rainple.framework.annotation.aspect.After;
 import com.rainple.framework.annotation.aspect.Before;
 import com.rainple.framework.core.ApplicationConfig;
 import com.rainple.framework.servlet.DispatcherServlet;
@@ -8,10 +9,12 @@ import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
 
 import java.io.File;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.URL;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @description: 增强方法的解析器
@@ -22,18 +25,20 @@ public class AdviceParser {
 
     public static void main(String[] args) {
         AdviceParser adviceParser = new AdviceParser(null);
-        AdviceChain parse = adviceParser.parse("* com.rainple.framework.*.impl.UserServiceImpl.add(..)", null,AdviceChain.AFTER);
+        //AdviceChain parse = adviceParser.parse("* com.rainple.framework.*.impl.UserServiceImpl.add(..)", null, null);
 
     }
 
     private AdviceExpressionInformation expressionInformation;
     private List<String> beanNames;
+    private Class adviseClass;
+    private Method adivseMethod;
 
-    public AdviceParser(List<String> beanNames) {
-        this.beanNames = beanNames;
+    public AdviceParser(List<Class> beanClass) {
+        beanNames = beanClass.stream().map(Class::getName).collect(Collectors.toList());
     }
 
-    public AdviceChain parse(String exp, Method advice,String type) {
+    public AdviceChain parse(String exp, Method advice,Class adviceClass, Annotation type) {
         expressionInformation = new AdviceExpressionInformation();
         exp = paramParser(exp);
         exp = methodParser(exp);
@@ -41,6 +46,8 @@ public class AdviceParser {
         reAndModifierParser(exp);
         AdviceChain adviceChain = new AdviceChain();
         adviceChain.setTargetMethod(advice);
+        this.adviseClass = adviceClass;
+        this.adivseMethod = advice;
         String clazz = expressionInformation.getClazz();
         int clazzLen = clazz.split("\\.").length;
         if (clazz.contains("*")) {
@@ -109,7 +116,7 @@ public class AdviceParser {
         return adviceChain;
     }
 
-    private void matchAdvice(String type, AdviceChain adviceChain, List<String> classes) {
+    private void matchAdvice(Annotation type, AdviceChain adviceChain, List<String> classes) {
         for (String clazz : classes) {
             Class cl = ClassUtils.forName(clazz);
             assert cl != null;
@@ -128,10 +135,16 @@ public class AdviceParser {
                 String modifier = expressionInformation.getModifier();
                 if (modifier.contains("abstract") || "interface".equals(modifier)) continue;
                 if (!"*".equals(modifier) && !modifier.equals(Modifier.toString(method.getModifiers()))) continue;
-                if (AdviceChain.BEFORE.equals(type))
-                    adviceChain.addBefore(method);
-                else
-                    adviceChain.addAfter(method);
+                adviceChain.setTargetClass(cl);
+                AspectInfo aspectInfo = new AspectInfo();
+                aspectInfo.setTargetClass(adviseClass);
+                aspectInfo.setTargetMethod(adivseMethod);
+                aspectInfo.setArgs(adivseMethod.getParameters());
+                if (type instanceof Before) {
+                    adviceChain.addBefore(aspectInfo);
+                } else {
+                    adviceChain.addAfter(aspectInfo);
+                }
             }
         }
     }

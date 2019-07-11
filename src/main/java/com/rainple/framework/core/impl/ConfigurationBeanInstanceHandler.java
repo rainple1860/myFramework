@@ -27,7 +27,7 @@ public class ConfigurationBeanInstanceHandler extends BeanInstanceHandler {
     protected void handlerProcess() {
         for (int i = 0 ; i < beanNames.size() ; i++) {
             try {
-                Class clazz = Class.forName(beanNames.get(i));
+                Class clazz = beanNames.get(i);
                 if (clazz.isAnnotationPresent(Configuration.class)) {
                     for (Method method : clazz.getMethods()) {
                         if (method.isAnnotationPresent(Bean.class)) {

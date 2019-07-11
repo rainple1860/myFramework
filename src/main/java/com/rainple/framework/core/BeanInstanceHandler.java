@@ -22,13 +22,14 @@ import java.util.List;
  **/
 public abstract class BeanInstanceHandler {
 
-    protected List<String> beanNames;
+    protected List<Class> beanNames;
     protected BeanFactory beanFactory = BeanFactory.getBeanFactory();
 
-    public void proceed(BeanInstanceHandlerChain chain,List<String> beanNames){
+    public void proceed(BeanInstanceHandlerChain chain,List<Class> beanNames){
         this.beanNames = beanNames;
         handlerProcess();
         chain.proceed();
     }
+
     protected abstract void handlerProcess();
 }

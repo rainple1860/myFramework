@@ -22,9 +22,9 @@ public class ControllerBeanInstanceHandler extends BeanInstanceHandler {
 
     @Override
     protected void handlerProcess() {
-        for (String beanName : beanNames) {
+        for (Class<?> clazz : beanNames) {
             try {
-                Class<?> clazz = Class.forName(beanName);
+                //Class<?> clazz = Class.forName(beanName);
                 if (clazz.isAnnotationPresent(Controller.class)){
                     Controller controller = clazz.getAnnotation(Controller.class);
                     String value = controller.value();
@@ -33,11 +33,7 @@ public class ControllerBeanInstanceHandler extends BeanInstanceHandler {
                     }
                     beanFactory.putBean(value,clazz.newInstance());
                 }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 e.printStackTrace();
             }
         }

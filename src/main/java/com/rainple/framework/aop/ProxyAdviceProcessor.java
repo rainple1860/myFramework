@@ -38,8 +38,6 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
             return methodProxy.invokeSuper(target,args);
         } catch (IllegalAccessException e) {
             e.printStackTrace();
-        } catch (InvocationTargetException e) {
-            e.printStackTrace();
         } catch (Throwable throwable) {
             throwable.printStackTrace();
         }
@@ -105,9 +103,7 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
                 Object[] args = abstractAspect.getArgs();
                 try {
                     adviceMethod.invoke(adviceInstance,args);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
+                } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
             }

@@ -28,9 +28,9 @@ public class BeanBeanInstanceHandler extends BeanInstanceHandler {
     @Override
     protected void handlerProcess() {
         BeanFactory beanFactory = BeanFactory.getBeanFactory();
-        for (String beanName : super.beanNames) {
+        for (Class<?> clazz : super.beanNames) {
             try {
-                Class<?> clazz = Class.forName(beanName);
+                //Class<?> clazz = Class.forName(beanName);
                 if (clazz.isAnnotationPresent(Bean.class)){//直接在pojo类中进行赋值
                     Bean beanAnno = clazz.getAnnotation(Bean.class);
                     String bv = beanAnno.value().trim();
@@ -65,11 +65,7 @@ public class BeanBeanInstanceHandler extends BeanInstanceHandler {
                     }
                     beanFactory.putBean(bv,newInstance);
                 }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
+            } catch (IllegalAccessException | InstantiationException e) {
                 e.printStackTrace();
             }
         }

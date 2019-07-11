@@ -1,6 +1,4 @@
 package com.rainple.framework.aop.advice;
-
-import javax.tools.Diagnostic;
 import java.lang.reflect.Method;
 import java.util.*;
 
@@ -12,18 +10,16 @@ import java.util.*;
 public class AdviceChain {
 
     private Method targetMethod;
-    private List<Method> beforeChain = new LinkedList<>();
-    private List<Method> afterChain = new LinkedList<>();
+    private List<AspectInfo> beforeChain = new LinkedList<>();
+    private List<AspectInfo> afterChain = new LinkedList<>();
+    private Class targetClass;
 
-    public static final String BEFORE = "before";
-    public static final String AFTER = "after";
-
-    public void addBefore(Method method) {
-        beforeChain.add(method);
+    public void addBefore(AspectInfo aspectInfo) {
+        beforeChain.add(aspectInfo);
     }
 
-    public void addAfter(Method method) {
-        afterChain.add(method);
+    public void addAfter(AspectInfo aspectInfo) {
+        afterChain.add(aspectInfo);
     }
 
     public Method getTargetMethod() {
@@ -34,12 +30,20 @@ public class AdviceChain {
         this.targetMethod = targetMethod;
     }
 
-    public List<Method> getBeforeChain() {
+    public List<AspectInfo> getBeforeChain() {
         return beforeChain;
     }
 
-    public List<Method> getAfterChain() {
+    public List<AspectInfo> getAfterChain() {
         return afterChain;
+    }
+
+    public Class getTargetClass() {
+        return targetClass;
+    }
+
+    public void setTargetClass(Class targetClass) {
+        this.targetClass = targetClass;
     }
 
     @Override

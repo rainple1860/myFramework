@@ -21,9 +21,9 @@ import com.rainple.framework.utils.ClassUtils;
 public class ServiceBeanInstanceHandler extends BeanInstanceHandler {
     @Override
     protected void handlerProcess() {
-        for (String beanName : beanNames) {
+        for (Class<?> clazz : beanNames) {
             try {
-                Class<?> clazz = Class.forName(beanName);
+                //Class<?> clazz = Class.forName(beanName);
                 if (clazz.isAnnotationPresent(Service.class)){
                     Service service = clazz.getAnnotation(Service.class);
                     String value = service.value();
@@ -38,11 +38,7 @@ public class ServiceBeanInstanceHandler extends BeanInstanceHandler {
                     }
                     beanFactory.putBean(value,instance);
                 }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            } catch (InstantiationException e) {
+            } catch (IllegalAccessException | InstantiationException e) {
                 e.printStackTrace();
             }
         }

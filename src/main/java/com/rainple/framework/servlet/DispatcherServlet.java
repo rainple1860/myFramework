@@ -10,6 +10,8 @@ import com.rainple.framework.annotation.aspect.Before;
 import com.rainple.framework.aop.*;
 import com.rainple.framework.aop.advice.AdviceChain;
 import com.rainple.framework.aop.advice.AdviceParser;
+import com.rainple.framework.bean.ComponentBean;
+import com.rainple.framework.bean.ComponentBeanFactory;
 import com.rainple.framework.core.*;
 import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
@@ -18,10 +20,7 @@ import org.apache.log4j.Logger;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.*;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -33,17 +32,17 @@ public class DispatcherServlet extends HttpServlet {
 
     private static Logger logger = Logger.getLogger(DispatcherServlet.class);
 
-    List<String> beanNames = new ArrayList<>();
+    private BeanFactory beanFactory = BeanFactory.getBeanFactory();
 
-    BeanFactory beanFactory = BeanFactory.getBeanFactory();
+    private List<Class> beanClass = new ArrayList<>();
 
-    Map<String,requestMappingHandler> handlerMapping = new HashMap<>();
+    private Map<String,requestMappingHandler> handlerMapping = new HashMap<>();
 
     /*存放未被代理的类*/
     private Map<String,Object> originalClass = new HashMap<>();
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws UnsupportedEncodingException {
         req.setCharacterEncoding("utf-8");
         resp.setCharacterEncoding("utf-8");
         doPost(req,resp);
@@ -63,10 +62,9 @@ public class DispatcherServlet extends HttpServlet {
             //扫包
             doScanPack(ApplicationConfig.applicationConfig.getProperty(ConfigEnum.SCANPACKAGE.getName()));
 
-            AdviceParser adviceParser = new AdviceParser(beanNames);
-            AdviceChain adviceChain = adviceParser.parse("* com.rainple.framework.Test.impl.*.*(..)", null, AdviceChain.BEFORE);
-            System.out.println(adviceChain);
-
+            componentBeanFilter();
+            List<ComponentBean> beans = ComponentBeanFactory.getInstance().getBeans();
+            beans.stream().forEach(System.out::println);
             //初始化bean
             doInstanceBeans();
             doAspect();
@@ -79,6 +77,21 @@ public class DispatcherServlet extends HttpServlet {
             e.printStackTrace();
         }
     }
+
+    private void componentBeanFilter() {
+        ComponentBeanFactory instance = ComponentBeanFactory.getInstance();
+        for (Class clazz : beanClass) {
+            if (clazz.isAnnotation()) continue;
+            Annotation[] annotations = clazz.getAnnotations();
+            for (Annotation annotation : annotations) {
+                ComponentBean componentBean = new ComponentBean();
+                componentBean.setAnnotation(annotation);
+                componentBean.setBeanClass(clazz);
+                instance.addBean(componentBean);
+            }
+        }
+    }
+
     private void doDispatcher(HttpServletRequest req, HttpServletResponse resp) {
         String uri = req.getRequestURI();
         String contextPath = req.getContextPath();
@@ -248,9 +261,9 @@ public class DispatcherServlet extends HttpServlet {
      */
     private void doInstanceBeans() {
         logger.info("正在初始化Bean...");
-        if (beanNames.isEmpty())
+        if (beanClass.isEmpty())
             return;
-        List<String> beans = beanNames;
+        List<Class> beans = beanClass;
         List<BeanInstanceHandler> beanHandlers = ClassUtils.getChildFromSuper(BeanInstanceHandler.class);
         BeanInstanceHandlerChain chain = new BeanInstanceHandlerChain(beanHandlers,beans);
         chain.proceed();
@@ -261,11 +274,10 @@ public class DispatcherServlet extends HttpServlet {
      *解析增强方法
      */
     private void doAspect(){
-        if (beanNames.isEmpty())
+        if (beanClass.isEmpty())
             return;
-        for (String beanName : beanNames) {
+        for (Class clazz : beanClass) {
             try {
-                Class<?> clazz = Class.forName(beanName);
                 if (clazz.isAnnotationPresent(Aspect.class) && clazz.isAnnotationPresent(Component.class)){
                     for (Method method : clazz.getMethods()) {
                         if (method.isAnnotationPresent(Before.class)){
@@ -282,8 +294,6 @@ public class DispatcherServlet extends HttpServlet {
                         }
                     }
                 }
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
             } catch (NoSuchMethodException e) {
                 e.printStackTrace();
             }
@@ -398,7 +408,8 @@ public class DispatcherServlet extends HttpServlet {
                 doScanPack(pck + "." + file.getName());
             }else {
                 String clazz = pck + "." + file.getName().replace(".class","");
-                beanNames.add(clazz);
+                //beanNames.add(clazz);
+                beanClass.add(ClassUtils.forName(clazz));
             }
         }
     }

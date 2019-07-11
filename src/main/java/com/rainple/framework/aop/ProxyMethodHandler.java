@@ -34,7 +34,6 @@ public class ProxyMethodHandler implements MethodInterceptor {
     @Override
     public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
         ProxyAdviceProcessor proxyAdviceProcessor = new ProxyAdviceProcessor(o,method,objects,methodProxy);
-        Object invoke = proxyAdviceProcessor.invoke();
-        return invoke;
+        return proxyAdviceProcessor.invoke();
     }
 }
