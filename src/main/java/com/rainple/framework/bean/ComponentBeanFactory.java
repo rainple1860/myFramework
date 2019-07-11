@@ -1,5 +1,10 @@
 package com.rainple.framework.bean;
 
+import com.rainple.framework.annotation.Configuration;
+import com.rainple.framework.annotation.Controller;
+import com.rainple.framework.annotation.Service;
+import com.rainple.framework.core.BeanFactory;
+
 import java.lang.annotation.Annotation;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,6 +44,22 @@ public class ComponentBeanFactory {
 
     public List<ComponentBean> getBeans() {
         return componentBeans;
+    }
+
+    public ComponentBean getBeanByBeanName(String beanName) {
+        BeanFactory beanFactory = BeanFactory.getBeanFactory();
+        for (ComponentBean componentBean : componentBeans) {
+            Annotation beanAnnotation = componentBean.getAnnotation();
+            if (beanAnnotation instanceof Service) {
+                String val = ((Service) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }
+            if (beanAnnotation instanceof Controller) {
+                String val = ((Controller) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }
+        }
+        return null;
     }
 
 }

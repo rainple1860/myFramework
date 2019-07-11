@@ -14,7 +14,7 @@ import java.util.Set;
 @RequestMapping("/rainple/")
 public class UserController {
 
-    @Autowired
+    @Autowired("")
     private UserService userService;
 
     @RequestMapping("/add")

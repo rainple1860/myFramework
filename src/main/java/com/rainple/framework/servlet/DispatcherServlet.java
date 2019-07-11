@@ -8,8 +8,6 @@ import com.rainple.framework.annotation.Aspect;
 import com.rainple.framework.annotation.aspect.After;
 import com.rainple.framework.annotation.aspect.Before;
 import com.rainple.framework.aop.*;
-import com.rainple.framework.aop.advice.AdviceChain;
-import com.rainple.framework.aop.advice.AdviceParser;
 import com.rainple.framework.bean.ComponentBean;
 import com.rainple.framework.bean.ComponentBeanFactory;
 import com.rainple.framework.core.*;
@@ -18,7 +16,6 @@ import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
 import javax.servlet.http.*;
 import java.io.*;
 import java.lang.annotation.Annotation;
@@ -63,11 +60,10 @@ public class DispatcherServlet extends HttpServlet {
             doScanPack(ApplicationConfig.applicationConfig.getProperty(ConfigEnum.SCANPACKAGE.getName()));
 
             componentBeanFilter();
-            List<ComponentBean> beans = ComponentBeanFactory.getInstance().getBeans();
-            beans.stream().forEach(System.out::println);
+
             //初始化bean
             doInstanceBeans();
-            doAspect();
+            //doAspect();
             //注入
             DoIoc();
             //处理映射关系
@@ -186,7 +182,7 @@ public class DispatcherServlet extends HttpServlet {
     /**
      * 处理url和controller方法的映射关系
      */
-    private void handlerMapping() {
+    private void handlerMapping() throws NoSuchMethodException {
         Map<String, Object> ioc = beanFactory.getBeans();
         if (ioc.isEmpty())
             return;
@@ -216,8 +212,22 @@ public class DispatcherServlet extends HttpServlet {
                         System.exit(0);
                     }
                     //将映射关系封装成requestMappingHandler内部类
-                    requestMappingHandler mappingHandler = new requestMappingHandler(entry.getValue(),method,pvs);
-                    handlerMapping.put(path,mappingHandler);
+                    Object proxyBean = beanFactory.getProxyBean(clazz.getName());
+                    requestMappingHandler mappingHandler;
+
+                    if (proxyBean != null) {
+                        Method method1 = null;
+                        for (Method proxyMethod : proxyBean.getClass().getDeclaredMethods()) {
+                            if(proxyMethod.getName().equals(method.getName())){
+                                method1 = proxyMethod;
+                                break;
+                            }
+                        }
+                        mappingHandler = new requestMappingHandler(proxyBean, method1, pvs,clazz,method);
+                    }else {
+                        mappingHandler = new requestMappingHandler(entry.getValue(), method, pvs,clazz,method);
+                    }
+                    handlerMapping.put(path, mappingHandler);
                     logger.info("完成映射：[\""+ path + "\"<=>" + method +"]");
                 }
             }
@@ -264,7 +274,7 @@ public class DispatcherServlet extends HttpServlet {
         if (beanClass.isEmpty())
             return;
         List<Class> beans = beanClass;
-        List<BeanInstanceHandler> beanHandlers = ClassUtils.getChildFromSuper(BeanInstanceHandler.class);
+        List<BeanInstanceHandler> beanHandlers = ClassUtils.getChildFromSuperToInstance(BeanInstanceHandler.class);
         BeanInstanceHandlerChain chain = new BeanInstanceHandlerChain(beanHandlers,beans);
         chain.proceed();
         logger.info("初始化Bean完成....");
@@ -391,9 +401,9 @@ public class DispatcherServlet extends HttpServlet {
         ProxyMethodHandler proxyMethodHandler = new ProxyMethodHandler();
         Object proxy = proxyMethodHandler.getProxy(target);
         for (Class<?> aClass : target.getClass().getInterfaces()) {
-            beanFactory.getBeans().put(aClass.getName(),proxy);
+            beanFactory.putBean(aClass.getName(),proxy);
         }
-        beanFactory.getBeans().put(beanName,proxy);
+        beanFactory.putBean(beanName,proxy);
     }
 
     /**
@@ -419,16 +429,22 @@ public class DispatcherServlet extends HttpServlet {
      */
     private class requestMappingHandler{
         //实例对象
-        public Object instance;
+         Object instance;
         //映射方法
         public Method method;
         //用于保存restful url中的参数名，如：、rainple/user/{name}/{age},pathVariables保存的是 name,age
         String[] pathVariables;
 
-        public requestMappingHandler(Object instance,Method method,String[] pathVariables){
+        Class originClass;
+        Method originMethod;
+
+
+        public requestMappingHandler(Object instance,Method method,String[] pathVariables,Class originClass,Method originMethod){
             this.instance = instance;
             this.method = method;
             this.pathVariables = pathVariables;
+            this.originClass = originClass;
+            this.originMethod = originMethod;
         }
 
         /**
@@ -451,7 +467,7 @@ public class DispatcherServlet extends HttpServlet {
             String[] paramNames = null;
             if (count > 0 && locationMap == null) {
                 //获取参数名,通过javassist字节码获取
-                paramNames = ClassUtils.parameterNameDiscovery(instance.getClass().getName(), method);
+                paramNames = ClassUtils.parameterNameDiscovery(this.originClass.getName(), originMethod);
             }
             for (int i = 0 ;i < count ; i++) {
                 String valName = "";//参数名

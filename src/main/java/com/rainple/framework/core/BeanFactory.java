@@ -1,12 +1,9 @@
 package com.rainple.framework.core;
 
 import com.rainple.framework.annotation.Autowired;
-import com.rainple.framework.annotation.Service;
 import com.rainple.framework.utils.ClassUtils;
-import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,7 +14,9 @@ public class BeanFactory {
 
     private static BeanFactory beanFactory = null;
 
-    private static Map<String,Object> ioc = new HashMap<>(16);
+    private Map<String,Object> ioc = new HashMap<>(16);
+
+    private Map<String,Object> proxyBean = new HashMap<>();
 
     private BeanFactory(){}
 
@@ -25,7 +24,7 @@ public class BeanFactory {
         if (beanFactory == null){
             synchronized (BeanFactory.class){
                 if (beanFactory == null){
-                    return new BeanFactory();
+                    beanFactory = new BeanFactory();
                 }
             }
         }
@@ -34,6 +33,14 @@ public class BeanFactory {
 
     public Map<String,Object> getBeans(){
         return ioc;
+    }
+
+    public Object putProxyBean(String beanName, Object instance) {
+        return proxyBean.put(beanName,instance);
+    }
+
+    public Object getProxyBean(String beanName) {
+        return proxyBean.get(beanName);
     }
 
     public Object putBean(String beanName, Object instance){
@@ -71,6 +78,11 @@ public class BeanFactory {
         ioc.clear();
     }
 
+    public boolean contains(String beanName) {
+        if (ioc.containsKey(beanName)) return true;
+        return false;
+    }
+
     public Object createBean(Class beanClass) {
 
         /**
@@ -88,4 +100,5 @@ public class BeanFactory {
         putBean(ClassUtils.lowerFirstCase(beanClass.getSimpleName()),newInstance);
         return newInstance;
     }
+
 }

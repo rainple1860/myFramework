@@ -24,7 +24,7 @@ public class JunitTest {
 
     @Test
     public void testGetSubclass(){
-        List<Class> childFromSuper = ClassUtils.getChildFromSuper(MethodHandler.class);
+        List<Class> childFromSuper = ClassUtils.getChildFromSuperToInstance(MethodHandler.class);
         System.out.println(childFromSuper);
     }
 
