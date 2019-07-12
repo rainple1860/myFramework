@@ -18,8 +18,6 @@ import java.lang.reflect.Method;
  **/
 public class AfterAspect extends AbstractAspect{
 
-    private Integer order;
-
     public AfterAspect(Object adviceInstance, Method adviceMethod, Object[] args, int order) {
         super(adviceInstance, adviceMethod, args);
         this.order = order;
@@ -31,4 +29,5 @@ public class AfterAspect extends AbstractAspect{
     public void setOrder(int order) {
         this.order = order;
     }
+
 }

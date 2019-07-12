@@ -5,6 +5,7 @@ package com.rainple.framework.aop;/**
  * @Description:
  */
 
+import com.rainple.framework.aop.advice.Advice;
 import com.rainple.framework.utils.ClassUtils;
 
 import java.io.File;
@@ -137,9 +138,6 @@ public class AspectUtils {
     public static void main(String[] args){
         String basePath = AspectUtils.class.getClassLoader().getResource("").getPath();
         String pck = "* com.rainple.framework.core.impl.*.*(..)";
-        AdviceMatcher matching = new AdviceMatcher();
-        matching.match(pck);
-        System.out.println(matching);
     }
 
 }

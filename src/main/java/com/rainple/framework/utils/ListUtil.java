@@ -34,9 +34,7 @@ public class ListUtil {
                     } else {
                         this.ret = String.valueOf(f.get(a)).compareTo(String.valueOf(f.get(b)));
                     }
-                } catch (NoSuchFieldException e) {
-                    e.printStackTrace();
-                } catch (IllegalAccessException e) {
+                } catch (NoSuchFieldException | IllegalAccessException e) {
                     e.printStackTrace();
                 }
                 return sort != null && sort.toLowerCase().equals("desc") ? -this.ret : this.ret;

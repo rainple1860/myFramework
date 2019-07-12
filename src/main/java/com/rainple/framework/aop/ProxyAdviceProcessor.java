@@ -50,8 +50,6 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
         if (abstractAspects == null)
             return;
         List<AbstractAspect> orderList = sortOfBefore(abstractAspects);
-        if (orderList == null)
-            return;
         for (AbstractAspect abstractAspect : orderList) {
             if (abstractAspect instanceof BeforeAspect){
                 Object adviceInstance = abstractAspect.getAdviceInstance();
@@ -59,9 +57,7 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
                 Object[] args = abstractAspect.getArgs();
                 try {
                     adviceMethod.invoke(adviceInstance,args);
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
+                } catch (IllegalAccessException | InvocationTargetException e) {
                     e.printStackTrace();
                 }
             }

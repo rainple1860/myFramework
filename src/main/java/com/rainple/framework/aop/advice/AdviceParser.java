@@ -1,19 +1,14 @@
 package com.rainple.framework.aop.advice;
 
-import com.rainple.framework.Constant.ConfigEnum;
-import com.rainple.framework.annotation.aspect.After;
-import com.rainple.framework.annotation.aspect.Before;
-import com.rainple.framework.core.ApplicationConfig;
-import com.rainple.framework.servlet.DispatcherServlet;
 import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
 
-import java.io.File;
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -25,29 +20,22 @@ public class AdviceParser {
 
     public static void main(String[] args) {
         AdviceParser adviceParser = new AdviceParser(null);
-        //AdviceChain parse = adviceParser.parse("* com.rainple.framework.*.impl.UserServiceImpl.add(..)", null, null);
-
     }
 
     private AdviceExpressionInformation expressionInformation;
     private List<String> beanNames;
-    private Class adviseClass;
-    private Method adivseMethod;
 
     public AdviceParser(List<Class> beanClass) {
         beanNames = beanClass.stream().map(Class::getName).collect(Collectors.toList());
     }
 
-    public AdviceChain parse(String exp, Method advice,Class adviceClass, Annotation type) {
+    public List<Advice> parse(String exp) {
         expressionInformation = new AdviceExpressionInformation();
+        List<Advice> adviceList;
         exp = paramParser(exp);
         exp = methodParser(exp);
         exp = clazzParser(exp);
         reAndModifierParser(exp);
-        AdviceChain adviceChain = new AdviceChain();
-        adviceChain.setTargetMethod(advice);
-        this.adviseClass = adviceClass;
-        this.adivseMethod = advice;
         String clazz = expressionInformation.getClazz();
         int clazzLen = clazz.split("\\.").length;
         if (clazz.contains("*")) {
@@ -109,14 +97,15 @@ public class AdviceParser {
                     }
                 }
             }
-            matchAdvice(type,adviceChain,eqList);
+            adviceList = matchAdvice(eqList);
         }else {
-            matchAdvice(type, adviceChain, Collections.singletonList(clazz));
+            adviceList = matchAdvice(Collections.singletonList(clazz));
         }
-        return adviceChain;
+        return adviceList;
     }
 
-    private void matchAdvice(Annotation type, AdviceChain adviceChain, List<String> classes) {
+    private List<Advice> matchAdvice(List<String> classes) {
+        List<Advice> adviceList = new ArrayList<>();
         for (String clazz : classes) {
             Class cl = ClassUtils.forName(clazz);
             assert cl != null;
@@ -135,18 +124,17 @@ public class AdviceParser {
                 String modifier = expressionInformation.getModifier();
                 if (modifier.contains("abstract") || "interface".equals(modifier)) continue;
                 if (!"*".equals(modifier) && !modifier.equals(Modifier.toString(method.getModifiers()))) continue;
-                adviceChain.setTargetClass(cl);
-                AspectInfo aspectInfo = new AspectInfo();
-                aspectInfo.setTargetClass(adviseClass);
-                aspectInfo.setTargetMethod(adivseMethod);
-                aspectInfo.setArgs(adivseMethod.getParameters());
-                if (type instanceof Before) {
-                    adviceChain.addBefore(aspectInfo);
-                } else {
-                    adviceChain.addAfter(aspectInfo);
-                }
+                Advice advice = new Advice();
+                advice.setClassName(clazz);
+                advice.setClassSimpleName(ClassUtils.lowerFirstCase(cl.getSimpleName()));
+                advice.setArgs(method.getParameterTypes());
+                advice.setMethodSimpleName(methodName);
+                advice.setMethodName(methodName);
+                advice.setMethod(method);
+                adviceList.add(advice);
             }
         }
+        return adviceList;
     }
 
     private boolean parametersMatch(Method method) {

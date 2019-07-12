@@ -6,10 +6,10 @@ import com.rainple.framework.annotation.Service;
 import com.rainple.framework.core.BeanFactory;
 
 import java.lang.annotation.Annotation;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @description:
@@ -38,8 +38,8 @@ public class ComponentBeanFactory {
         componentBeans.remove(bean);
     }
 
-    public List<ComponentBean> getBeansByAnnotation(Annotation annotation) {
-        return componentBeans.stream().filter(bean -> bean.getAnnotation() == annotation).collect(Collectors.toList());
+    public List<ComponentBean> getBeansByAnnotation(Class<? extends Annotation> annotation) {
+        return componentBeans.stream().filter(bean -> bean.getAnnotation().annotationType() == annotation).collect(Collectors.toList());
     }
 
     public List<ComponentBean> getBeans() {
@@ -47,7 +47,6 @@ public class ComponentBeanFactory {
     }
 
     public ComponentBean getBeanByBeanName(String beanName) {
-        BeanFactory beanFactory = BeanFactory.getBeanFactory();
         for (ComponentBean componentBean : componentBeans) {
             Annotation beanAnnotation = componentBean.getAnnotation();
             if (beanAnnotation instanceof Service) {

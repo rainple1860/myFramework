@@ -21,6 +21,7 @@ public abstract class AbstractAspect implements Aspect {
     protected Method adviceMethod; //增强方法
     protected Object adviceInstance;//增强方法的实例
     protected Object[] args;//增强方法的参数列表
+    protected  int order;
 
 
     public AbstractAspect(Object adviceInstance,Method adviceMethod, Object[] args) {

@@ -43,9 +43,9 @@ public class AspectTest {
         System.out.println("在com.rainple.framework.service.impl.UserServiceImpl.add(..)之后调用");
     }
 
-    @After("* com.rainple.framework.controller.UserController.get2(..)")
-    public void testAspect4() {
-        System.out.println("* com.rainple.framework.controller.UserController.get2(..)前调用");
+    @Before("* com.rainple.framework.controller.UserController.*(..)")
+    public void testAspect4(){
+        System.out.println("在* com.rainple.framework.controller.UserController.*(..)之前调用");
     }
 
 }

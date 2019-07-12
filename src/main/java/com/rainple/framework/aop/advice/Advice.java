@@ -1,10 +1,11 @@
-package com.rainple.framework.aop;/**
+package com.rainple.framework.aop.advice;/**
  * @Auther: Administrator
  * @Date: 2018/9/24 16:01
  * @PROJECT_NAME webapp
  * @Description:
  */
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 /**
@@ -23,6 +24,7 @@ public class Advice {
     private String methodName;
     private String methodSimpleName;
     private Class[] args;
+    private Method method;
 
     private int order;
 
@@ -74,6 +76,14 @@ public class Advice {
         this.order = order;
     }
 
+    public Method getMethod() {
+        return method;
+    }
+
+    public void setMethod(Method method) {
+        this.method = method;
+    }
+
     @Override
     public String toString() {
         return "Advice{" +
@@ -82,6 +92,8 @@ public class Advice {
                 ", methodName='" + methodName + '\'' +
                 ", methodSimpleName='" + methodSimpleName + '\'' +
                 ", args=" + Arrays.toString(args) +
+                ", method=" + method +
+                ", order=" + order +
                 '}';
     }
 }

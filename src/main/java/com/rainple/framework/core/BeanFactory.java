@@ -43,6 +43,10 @@ public class BeanFactory {
         return proxyBean.get(beanName);
     }
 
+    public Object putBeanForce(String beanName,Object instance) {
+        return ioc.put(beanName,instance);
+    }
+
     public Object putBean(String beanName, Object instance){
         if (ioc.containsKey(beanName)) {
             /*Class aClass = ClassUtils.forName(beanName);
