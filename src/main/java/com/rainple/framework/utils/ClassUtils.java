@@ -167,9 +167,7 @@ public class ClassUtils {
     public static Object newInstance(Class clazz){
         try {
             return clazz.newInstance();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             e.printStackTrace();
         }
         return null;
@@ -199,7 +197,21 @@ public class ClassUtils {
         }
     }
 
-    public static <T> List<T> getChildFromSuper(Class clazz){
+    public static List<Class> isAssignableFrom(Class clazz) {
+        String path = clazz.getPackage().getName();
+        List<String> cls = new ArrayList<>();
+        List<Class> classes = new ArrayList<>();
+        getClasses(path,cls);
+        for (String cl : cls) {
+            Class aClass = forName(cl);
+            assert aClass != null;
+            if (aClass.isInterface()) continue;
+            classes.add(aClass);
+        }
+        return classes;
+    }
+
+    public static <T> List<T> getChildFromSuperToInstance(Class clazz){
         String path = clazz.getPackage().getName();
         List<T> classes = new ArrayList<>();
         List<String> cls = new ArrayList<>();
@@ -213,7 +225,7 @@ public class ClassUtils {
                     continue;
                 if (Modifier.isAbstract(forName.getModifiers()))
                     continue;
-                if (clazz.isAssignableFrom(forName)){
+                if (clazz.isAssignableFrom(forName)) {
                     classes.add((T) newInstance(className));
                 }
             } catch (ClassNotFoundException e) {
@@ -236,7 +248,7 @@ public class ClassUtils {
     }
 
     public static void main(String[] args){
-        List<Object> childFromSuper = ClassUtils.getChildFromSuper(MethodHandler.class);
+        List<Object> childFromSuper = ClassUtils.getChildFromSuperToInstance(MethodHandler.class);
         System.out.println(childFromSuper);
     }
 }

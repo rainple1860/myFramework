@@ -5,8 +5,7 @@ package com.rainple.framework.core.impl;/**
  * @Description:
  */
 
-import com.rainple.framework.annotation.Aspect;
-import com.rainple.framework.annotation.Autowired;
+import com.rainple.framework.annotation.*;
 import com.rainple.framework.annotation.aspect.After;
 import com.rainple.framework.annotation.aspect.Before;
 import com.rainple.framework.aop.advice.AdviceChain;
@@ -14,7 +13,6 @@ import com.rainple.framework.aop.advice.AdviceParser;
 import com.rainple.framework.aop.advice.AspectInfo;
 import com.rainple.framework.core.BeanFactory;
 import com.rainple.framework.core.BeanInstanceHandler;
-import com.rainple.framework.service.impl.UserServiceImpl;
 import com.rainple.framework.utils.ClassUtils;
 import com.rainple.framework.utils.StringUtils;
 import net.sf.cglib.proxy.Enhancer;
@@ -72,25 +70,64 @@ public class AspectBeanInstanceHandler extends BeanInstanceHandler {
                 if (fieldType.isInterface()) {
                     bean = beanFactory.getBean(fieldType.getName());
                     if (bean == null) {
-                        List<Object> child = ClassUtils.getChildFromSuper(fieldType);
-                        if (child == null) {
+                        List<Class> assignableFrom = ClassUtils.isAssignableFrom(fieldType);
+                        if (assignableFrom == null || assignableFrom.size() == 0) {
                             throw new RuntimeException("找不到实现类:" + fieldType.getName());
                         }
-                        if (child.size() > 2) {
-                            String value = field.getAnnotation(Autowired.class).value().trim();
+                        if (assignableFrom.size() > 1) {
+                            Autowired autowired = field.getAnnotation(Autowired.class);
+                            String value = autowired.value().trim();
                             if (StringUtils.isEmpty(value)) {
                                 throw new RuntimeException("程序无法知道，注入的是那个实现类：" + fieldType.getName());
                             }
                             bean = beanFactory.getBean(value);
-                            if (bean == null) {//有两种可能，第一是还没有对应的实现类还没有被实例化，第二种情况是value没有对应的实现类
-
+                            if (bean == null) {
+                                //有两种可能，第一是还没有对应的实现类还没有被实例化，第二种情况是value没有对应的实现类
+                                //所以需要先将实现类加入容器中
+                                Class target = null;
+                                for (Class cl : assignableFrom) {
+                                    boolean match = false;
+                                    Annotation[] annotations = cl.getAnnotations();
+                                    if (annotations == null || annotations.length == 0)
+                                        continue;
+                                    for (Annotation annotation : annotations) {
+                                        String val = "";
+                                        if (annotation instanceof Autowired)
+                                            val = ((Autowired) annotation).value();
+                                        else if (annotation instanceof Bean)
+                                            val = ((Bean) annotation).value();
+                                        else if (annotation instanceof Component)
+                                            val = ((Component) annotation).value();
+                                        else if (annotation instanceof Controller)
+                                            val = ((Controller) annotation).value();
+                                        else if (annotation instanceof Service)
+                                            val = ((Service) annotation).value();
+                                        if (val.equals(value)) {
+                                            match = true;
+                                            break;
+                                        }
+                                    }
+                                    if (match) {
+                                        target = cl;
+                                        break;
+                                    }
+                                }
+                                if (target == null) {
+                                    throw new RuntimeException("程序无法知道，注入的是那个实现类：" + fieldType.getName());
+                                }
+                                createAspectBean(target);
                             }
+                        }else {
+                            createAspectBean(assignableFrom.get(0));
                         }
                     }
                 }else
                     bean = beanFactory.getBean(fieldType);
-                if (bean == null)
-                    createAspectBean(fieldType);
+                if (bean == null) {
+                    if (fieldType.isInterface())
+                        bean = beanFactory.getBean(fieldType.getName());
+                    //createAspectBean(fieldType);
+                }
                 field.setAccessible(true);
                 field.set(instance,bean);
             }
@@ -101,7 +138,15 @@ public class AspectBeanInstanceHandler extends BeanInstanceHandler {
             }else if (method.isAnnotationPresent(After.class))
                 aspectWrapper(clazz,instance,method,method.getAnnotation(After.class));
         }
-        beanFactory.putBean(ClassUtils.lowerFirstCase(clazz.getSimpleName()),instance);
+        if (instance == null && clazz.isInterface()) {
+            instance = beanFactory.getBean(clazz.getName());
+            beanFactory.putBean(clazz.getName(),instance);
+        }else {
+            beanFactory.putBean(ClassUtils.lowerFirstCase(clazz.getSimpleName()), instance);
+            for (Class aClass : clazz.getInterfaces()) {
+                beanFactory.putBean(aClass.getName(),instance);
+            }
+        }
     }
 
     private void aspectWrapper(Class clazz, Object adviseInstance, Method method, Annotation aspect) throws IllegalAccessException {
@@ -126,8 +171,7 @@ public class AspectBeanInstanceHandler extends BeanInstanceHandler {
         }
         Proxy ins = new Proxy(adviceChain);
         Object proxy = ins.getProxy();
-        String simpleName = adviceChain.getTargetClass().getSimpleName();
-        beanFactory.putBean(ClassUtils.lowerFirstCase(simpleName),proxy);
+        beanFactory.putProxyBean(adviceChain.getTargetClass().getName(),proxy);
     }
 
     static class Proxy implements MethodInterceptor {
