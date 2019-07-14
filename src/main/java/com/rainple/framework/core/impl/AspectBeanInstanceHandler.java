@@ -6,13 +6,10 @@ package com.rainple.framework.core.impl;/**
  */
 
 import com.rainple.framework.annotation.Aspect;
-import com.rainple.framework.bean.ComponentBean;
-import com.rainple.framework.bean.ComponentBeanFactory;
 import com.rainple.framework.core.BeanInstanceHandler;
 import com.rainple.framework.utils.ClassUtils;
-import org.apache.log4j.Logger;
 
-import java.util.List;
+import java.lang.annotation.Annotation;
 
 /**
  * @program: webapp
@@ -25,15 +22,15 @@ import java.util.List;
  **/
 public class AspectBeanInstanceHandler extends BeanInstanceHandler {
 
-    private static final Logger LOGGER = Logger.getLogger(AspectBeanInstanceHandler.class);
 
     @Override
-    protected void handlerProcess(){
-        List<ComponentBean> beans = ComponentBeanFactory.getInstance().getBeansByAnnotation(Aspect.class);
-        for (ComponentBean bean : beans) {
-            Class clazz = bean.getBeanClass();
-            if (clazz.isInterface()) continue;
-            beanFactory.putBean(ClassUtils.lowerFirstCase(clazz.getSimpleName()),ClassUtils.newInstance(clazz));
-        }
+    protected Object handlerProcess(Class clazz){
+        if (clazz.isInterface()) return null;
+        return beanFactory.putBean(ClassUtils.lowerFirstCase(clazz.getSimpleName()),ClassUtils.newInstance(clazz));
+    }
+
+    @Override
+    protected Class<? extends Annotation> getAnnotation() {
+        return Aspect.class;
     }
 }

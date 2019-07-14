@@ -1,6 +1,5 @@
 package com.rainple.framework.aop;
 
-import com.rainple.framework.core.RegisterCenter;
 import com.rainple.framework.utils.ListUtil;
 import net.sf.cglib.proxy.MethodProxy;
 
@@ -8,6 +7,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @program: webapp
@@ -24,12 +24,14 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
     private Method method;
     private Object[] args;
     private MethodProxy methodProxy;
+    private Map<Method, List<AbstractAspect>> proxyMethodHandlers;
 
-    public ProxyAdviceProcessor(Object target, Method method, Object[] args, MethodProxy methodProxy) {
+    public ProxyAdviceProcessor(Object target, Method method, Object[] args, MethodProxy methodProxy, Map<Method, List<AbstractAspect>> proxyMethodHandlers) {
         this.target = target;
         this.method = method;
         this.args = args;
         this.methodProxy = methodProxy;
+        this.proxyMethodHandlers = proxyMethodHandlers;
     }
 
     @Override
@@ -46,7 +48,7 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
 
     @Override
     protected void doBefore() {
-        List<AbstractAspect> abstractAspects = RegisterCenter.proxyMethodHandlers.get(method);
+        List<AbstractAspect> abstractAspects = proxyMethodHandlers.get(method);
         if (abstractAspects == null)
             return;
         List<AbstractAspect> orderList = sortOfBefore(abstractAspects);
@@ -88,7 +90,7 @@ public class ProxyAdviceProcessor extends AbstractAdviceProcessor {
 
     @Override
     protected void doAfter() {
-        List<AbstractAspect> abstractAspects = RegisterCenter.proxyMethodHandlers.get(method);
+        List<AbstractAspect> abstractAspects = proxyMethodHandlers.get(method);
         if (abstractAspects == null)
             return;
         List<AbstractAspect> sortOfAfter = sortOfAfter(abstractAspects,"order",ListUtil.DESC);

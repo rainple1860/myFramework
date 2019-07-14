@@ -5,10 +5,7 @@ package com.rainple.framework.core;/**
  * @Description:
  */
 
-import com.rainple.framework.annotation.Bean;
-import com.rainple.framework.aop.MethodHandlerChain;
-
-import java.util.ArrayList;
+import java.lang.annotation.Annotation;
 import java.util.List;
 
 /**
@@ -22,14 +19,20 @@ import java.util.List;
  **/
 public abstract class BeanInstanceHandler {
 
-    protected List<Class> beanNames;
     protected BeanFactory beanFactory = BeanFactory.getBeanFactory();
 
     public void proceed(BeanInstanceHandlerChain chain,List<Class> beanNames){
-        this.beanNames = beanNames;
-        handlerProcess();
+        for (Class<?> beanName : beanNames) {
+            if (beanName.isAnnotationPresent(getAnnotation())) {
+                Object instance = handlerProcess(beanName);
+                //todo
+            }
+        }
         chain.proceed();
     }
 
-    protected abstract void handlerProcess();
+    protected abstract Object handlerProcess(Class clazz);
+
+    protected abstract Class<? extends Annotation> getAnnotation();
+
 }

@@ -9,6 +9,8 @@ import com.rainple.framework.annotation.Service;
 import com.rainple.framework.core.BeanInstanceHandler;
 import com.rainple.framework.utils.ClassUtils;
 
+import java.lang.annotation.Annotation;
+
 /**
  * @program: webapp
  *
@@ -20,27 +22,28 @@ import com.rainple.framework.utils.ClassUtils;
  **/
 public class ServiceBeanInstanceHandler extends BeanInstanceHandler {
     @Override
-    protected void handlerProcess() {
-        for (Class<?> clazz : beanNames) {
-            try {
-                //Class<?> clazz = Class.forName(beanName);
-                if (clazz.isAnnotationPresent(Service.class)){
-                    Service service = clazz.getAnnotation(Service.class);
-                    String value = service.value();
-                    if ("".equals(value)){
-                        //将首字母变小写
-                        value = ClassUtils.lowerFirstCase(clazz.getSimpleName());
-                    }
-                    Object instance = clazz.newInstance();
-                    //将接口实例化
-                    for (Class<?> itf : clazz.getInterfaces()) {
-                        beanFactory.putBean(itf.getName(),instance);
-                    }
-                    beanFactory.putBean(value,instance);
-                }
-            } catch (IllegalAccessException | InstantiationException e) {
-                e.printStackTrace();
+    protected Object handlerProcess(Class clazz) {
+        try {
+            Service service = (Service) clazz.getAnnotation(Service.class);
+            String value = service.value();
+            if ("".equals(value)){
+                //将首字母变小写
+                value = ClassUtils.lowerFirstCase(clazz.getSimpleName());
             }
+            Object instance = clazz.newInstance();
+            //将接口实例化
+            for (Class<?> itf : clazz.getInterfaces()) {
+                beanFactory.putBean(itf.getName(),instance);
+            }
+            return beanFactory.putBean(value,instance);
+        } catch (IllegalAccessException | InstantiationException e) {
+            e.printStackTrace();
         }
+        return null;
+    }
+
+    @Override
+    protected Class<? extends Annotation> getAnnotation() {
+        return Service.class;
     }
 }

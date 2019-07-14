@@ -10,6 +10,8 @@ import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @program: webapp
@@ -23,8 +25,11 @@ import java.lang.reflect.Method;
 public class ProxyMethodHandler implements MethodInterceptor {
 
     private Enhancer enhancer = new Enhancer();
+    private Map<Method, List<AbstractAspect>> proxyMethodHandlers;
 
-    public ProxyMethodHandler(){}
+    public ProxyMethodHandler(Map<Method, List<AbstractAspect>> proxyMethodHandlers){
+        this.proxyMethodHandlers = proxyMethodHandlers;
+    }
     public Object getProxy(final Object target){
         enhancer.setCallback(this);
         enhancer.setSuperclass(target.getClass());
@@ -33,7 +38,7 @@ public class ProxyMethodHandler implements MethodInterceptor {
 
     @Override
     public Object intercept(Object o, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
-        ProxyAdviceProcessor proxyAdviceProcessor = new ProxyAdviceProcessor(o,method,objects,methodProxy);
+        ProxyAdviceProcessor proxyAdviceProcessor = new ProxyAdviceProcessor(o,method,objects,methodProxy,proxyMethodHandlers);
         return proxyAdviceProcessor.invoke();
     }
 }

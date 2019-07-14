@@ -6,7 +6,6 @@ import com.rainple.framework.Constant.ConfigEnum;
 import com.rainple.framework.annotation.Controller;
 import com.rainple.framework.annotation.RequestMapping;
 import com.rainple.framework.annotation.ResponseBody;
-import com.rainple.framework.core.filter.ControllerHandlerChain;
 import com.rainple.framework.core.filter.HandlerChain;
 import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
@@ -16,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -24,10 +22,16 @@ import java.util.Map;
  * @author: rainple
  * @create: 2019-07-12 17:12
  **/
-public class HandlerMappingSurpportor {
+public class HandlerMappingSupporter {
 
     private BeanFactory beanFactory = BeanFactory.getBeanFactory();
-    private static Logger logger = Logger.getLogger(HandlerMappingSurpportor.class);
+    private static Logger logger = Logger.getLogger(HandlerMappingSupporter.class);
+    private static Map<String,RequestMappingHandler> handlerMapping = new HashMap<>();
+    private Map<Method, HandlerChain> filterMap;
+
+    public HandlerMappingSupporter(Map<Method,HandlerChain> filterMap) {
+        this.filterMap = filterMap;
+    }
 
     /**
      * 将action key 与 controller 的方法解析成一一对应关系
@@ -36,7 +40,6 @@ public class HandlerMappingSurpportor {
         Map<String, Object> ioc = beanFactory.getBeans();
         if (ioc.isEmpty())
             return;
-        Map<String, RequestMappingHandler> handlerMapping = RegisterCenter.getHandlerMappings();
         for (Map.Entry<String,Object> entry : ioc.entrySet()){
             Class<?> clazz = entry.getValue().getClass();
             if (!clazz.isAnnotationPresent(Controller.class))
@@ -101,7 +104,6 @@ public class HandlerMappingSurpportor {
         //统一格式，方便后边的处理
         uri = uri.replace(contextPath,"");
         RequestMappingHandler mappingHandler;
-        Map<String, RequestMappingHandler> handlerMapping = RegisterCenter.getHandlerMappings();
         mappingHandler = handlerMapping.get(uri);
         Map<String, String> locationMap = null;
         if (mappingHandler == null) {
@@ -123,7 +125,7 @@ public class HandlerMappingSurpportor {
                 params = mappingHandler.parseParams(req,resp, locationMap);
             }
             try {
-                Object result = invokeChain(instance, method, params);
+                Object result = invokeChain(instance,method,params);
                 //controller类中添加了responseBody注解，直接返回字符串，如果是对象则转成json格式
                 if (instance.getClass().isAnnotationPresent(ResponseBody.class)
                         || method.isAnnotationPresent(ResponseBody.class)) {
@@ -139,7 +141,7 @@ public class HandlerMappingSurpportor {
                     String subfix = ApplicationConfig.applicationConfig.getProperty(ConfigEnum.DISPATCHER_SUBFIX.getName());
                     if (StringUtils.isEmpty(subfix))
                         subfix = ".jsp";
-                    if (StringUtils.isEmpty(prefix) || StringUtils.isEmpty(subfix))
+                    if (StringUtils.isEmpty(prefix))
                         throw new RuntimeException("请求路径配置错误");
                     if (!(result instanceof String))
                         throw new RuntimeException("页面返回转发路径类型必须为String类型");
@@ -148,12 +150,10 @@ public class HandlerMappingSurpportor {
                         String path = (contextPath + "/" + prefix + "/" + result + subfix).replaceAll("/+", "/");
                         logger.info("转发路径 : " + path);
                         resp.sendRedirect(path);
-                        return;
                     }else {
                         String path = (contextPath + "/" + prefix + "/" + result + subfix).replaceAll("/+", "/");
                         logger.info("请求路径 : " + path);
                         req.getRequestDispatcher(path).forward(req,resp);
-                        return;
                     }
                 }
             } catch (Exception e) {
@@ -162,19 +162,12 @@ public class HandlerMappingSurpportor {
         }
     }
 
-    public Object invokeChain(Object instance,Method method,Object[] params) throws InvocationTargetException, IllegalAccessException {
-        List<HandlerChain> handlerChains =
-                RegisterCenter.getHandlerChains(method);
-        if (handlerChains != null && handlerChains.size() > 0) {
-            for (HandlerChain handlerChain : handlerChains) {
-                if (handlerChain instanceof ControllerHandlerChain) {
-                    ControllerHandlerChain chain = (ControllerHandlerChain) handlerChain;
-                    Method chainMethod = chain.getMethod();
-                    chainMethod.invoke(chain.getTarget(),chain.getArgs());
-                }
-            }
-        }
-        return method.invoke(instance, params);
+    private Object invokeChain(Object instance,Method method,Object[] params) throws InvocationTargetException, IllegalAccessException {
+        HandlerChain handlerChain = filterMap.get(method);
+        if (handlerChain != null)
+            return handlerChain.handle(instance,method,params);
+        else
+            return method.invoke(instance,params);
     }
 
     /**
@@ -184,8 +177,7 @@ public class HandlerMappingSurpportor {
      */
     private Map findUrlFromHandlerMapping(String uri){
         Map<String,Object> map = new HashMap<>();
-        Map<String, RequestMappingHandler> handlerMappings = RegisterCenter.getHandlerMappings();
-        for (String key : handlerMappings.keySet()) {
+        for (String key : handlerMapping.keySet()) {
             if (uri.equals(key)) {
                 map.put("uri", uri);
                 return map;

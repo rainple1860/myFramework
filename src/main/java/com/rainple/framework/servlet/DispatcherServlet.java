@@ -14,8 +14,10 @@ import com.rainple.framework.aop.advice.Advice;
 import com.rainple.framework.aop.advice.AdviceParser;
 import com.rainple.framework.bean.ComponentBean;
 import com.rainple.framework.bean.ComponentBeanFactory;
+import com.rainple.framework.bean.InvokeBean;
 import com.rainple.framework.core.*;
 import com.rainple.framework.core.filter.ControllerHandlerChain;
+import com.rainple.framework.core.filter.HandlerChain;
 import com.rainple.framework.utils.ClassUtils;
 import org.apache.log4j.Logger;
 
@@ -37,10 +39,14 @@ import java.util.Map;
 public class DispatcherServlet extends HttpServlet {
 
     private static Logger logger = Logger.getLogger(DispatcherServlet.class);
-
+    //里面装有已实例化的对象
     private BeanFactory beanFactory = BeanFactory.getBeanFactory();
-
+    //用户扫描的所有类
     private List<Class> beanClass = new ArrayList<>();
+    //用户请求链映射,controller中使用到这种方式
+    private static Map<Method,HandlerChain> filterMap = new HashMap<>();
+    //代理类的方法映射
+    private static Map<Method, List<AbstractAspect>> proxyMethodHandlers = new HashMap<>();
 
 
     /*存放未被代理的类*/
@@ -97,7 +103,7 @@ public class DispatcherServlet extends HttpServlet {
     }
 
     private void doDispatcher(HttpServletRequest req, HttpServletResponse resp) {
-        new HandlerMappingSurpportor().execute(req,resp);
+        new HandlerMappingSupporter(filterMap).execute(req,resp);
     }
 
     /**
@@ -129,7 +135,7 @@ public class DispatcherServlet extends HttpServlet {
      * 处理url和controller方法的映射关系
      */
     private void handlerMapping() {
-        new HandlerMappingSurpportor().parse();
+        new HandlerMappingSupporter(filterMap).parse();
     }
 
     /**
@@ -229,15 +235,26 @@ public class DispatcherServlet extends HttpServlet {
             }
             //controller层的方法都是使用反射调用，所以不需要生成代理类，只需要在反射调用前后调用即可
             if (target.getClass().isAnnotationPresent(Controller.class)) {
-                ControllerHandlerChain controllerHandlerChain = new ControllerHandlerChain();
+
                 Object bean = beanFactory.getBean(clazz);
                 if (bean == null)
                     bean = ClassUtils.newInstance(clazz);
-                controllerHandlerChain.setTarget(bean);
                 Method targetMethod = target.getClass().getMethod(advice.getMethodName(), advice.getArgs());
-                controllerHandlerChain.setMethod(method);
-                controllerHandlerChain.setArgs(method.getParameterTypes());
-                RegisterCenter.putToFilter(targetMethod,controllerHandlerChain);
+                InvokeBean invokeBean = new InvokeBean();
+                invokeBean.setMethod(method);
+                invokeBean.setInstance(bean);
+                invokeBean.setOrder(order);
+                invokeBean.setArgs(method.getParameterTypes());
+                HandlerChain handlerChain = filterMap.get(targetMethod);
+                if (handlerChain != null) {
+                    if (handlerChain instanceof ControllerHandlerChain) {
+                        ((ControllerHandlerChain) handlerChain).putChain(invokeBean,adviceType);
+                    }
+                }else {
+                    ControllerHandlerChain controllerHandlerChain = new ControllerHandlerChain(ClassUtils.forName(advice.getClassName()),advice.getMethod(),advice.getMethod().getParameterTypes());
+                    controllerHandlerChain.putChain(invokeBean,adviceType);
+                    filterMap.put(targetMethod,controllerHandlerChain);
+                }
                 continue;
             }
             //处理增强方法
@@ -285,7 +302,6 @@ public class DispatcherServlet extends HttpServlet {
             abstractAspect = new BeforeAspect(adviceInstance,method,method.getParameters(),advice.getOrder());
         else if (AdviceType == After.class)
             abstractAspect = new AfterAspect(adviceInstance,method,method.getParameters(),advice.getOrder());
-        Map<Method, List<AbstractAspect>> proxyMethodHandlers = RegisterCenter.proxyMethodHandlers;
         List<AbstractAspect> abstractAspects = proxyMethodHandlers.get(targetMethod);
         if (abstractAspects != null && abstractAspects.size() > 0){
             abstractAspects.add(abstractAspect);
@@ -293,7 +309,7 @@ public class DispatcherServlet extends HttpServlet {
         }else {
             List<AbstractAspect> aspects = new ArrayList<>();
             aspects.add(abstractAspect);
-            RegisterCenter.proxyMethodHandlers.put(targetMethod, aspects);
+            proxyMethodHandlers.put(targetMethod, aspects);
         }
     }
 
@@ -304,8 +320,9 @@ public class DispatcherServlet extends HttpServlet {
      */
     private void createProxyAndPutIntoIOC(String beanName, Object target) {
         //创建代理类
-        ProxyMethodHandler proxyMethodHandler = new ProxyMethodHandler();
+        ProxyMethodHandler proxyMethodHandler = new ProxyMethodHandler(proxyMethodHandlers);
         Object proxy = proxyMethodHandler.getProxy(target);
+        //这里创建的代理会覆盖掉已经实例化的bean
         for (Class<?> aClass : target.getClass().getInterfaces()) {
             beanFactory.putBeanForce(aClass.getName(),proxy);
         }
@@ -324,7 +341,6 @@ public class DispatcherServlet extends HttpServlet {
                 doScanPack(pck + "." + file.getName());
             }else {
                 String clazz = pck + "." + file.getName().replace(".class","");
-                //beanNames.add(clazz);
                 beanClass.add(ClassUtils.forName(clazz));
             }
         }

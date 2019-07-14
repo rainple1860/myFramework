@@ -1,7 +1,9 @@
 package com.rainple.framework.core.filter;
 
+import java.lang.reflect.Method;
+
 public interface HandlerChain {
 
-    public void handle();
+    Object handle(Object instance, Method method, Object[] args);
 
 }
