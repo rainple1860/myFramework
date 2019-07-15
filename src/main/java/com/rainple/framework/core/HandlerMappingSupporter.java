@@ -7,6 +7,7 @@ import com.rainple.framework.annotation.Controller;
 import com.rainple.framework.annotation.RequestMapping;
 import com.rainple.framework.annotation.ResponseBody;
 import com.rainple.framework.core.filter.HandlerChain;
+import com.rainple.framework.core.filter.HandlerInterceptorSupporter;
 import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -125,7 +126,11 @@ public class HandlerMappingSupporter {
                 params = mappingHandler.parseParams(req,resp, locationMap);
             }
             try {
-                Object result = invokeChain(instance,method,params);
+                HandlerInterceptorSupporter handlerInterceptorSupportor = new HandlerInterceptorSupporter(req, resp);
+                boolean preHandle = handlerInterceptorSupportor.preHandle();
+                if (!preHandle) return;
+                Object result = invokeChain(instance,method,params,handlerInterceptorSupportor);
+                handlerInterceptorSupportor.afterHandle();
                 //controller类中添加了responseBody注解，直接返回字符串，如果是对象则转成json格式
                 if (instance.getClass().isAnnotationPresent(ResponseBody.class)
                         || method.isAnnotationPresent(ResponseBody.class)) {
@@ -162,8 +167,9 @@ public class HandlerMappingSupporter {
         }
     }
 
-    private Object invokeChain(Object instance,Method method,Object[] params) throws InvocationTargetException, IllegalAccessException {
+    private Object invokeChain(Object instance, Method method, Object[] params, HandlerInterceptorSupporter handlerInterceptorSupportor) throws InvocationTargetException, IllegalAccessException {
         HandlerChain handlerChain = filterMap.get(method);
+        handlerInterceptorSupportor.postHandle();
         if (handlerChain != null)
             return handlerChain.handle(instance,method,params);
         else

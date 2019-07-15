@@ -1,15 +1,11 @@
 package com.rainple.framework.bean;
 
-import com.rainple.framework.annotation.Configuration;
-import com.rainple.framework.annotation.Controller;
-import com.rainple.framework.annotation.Service;
-import com.rainple.framework.core.BeanFactory;
+import com.rainple.framework.annotation.*;
 
 import java.lang.annotation.Annotation;
-import java.util.*;
-import java.util.function.Predicate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * @description:
@@ -53,8 +49,24 @@ public class ComponentBeanFactory {
                 String val = ((Service) beanAnnotation).value().trim();
                 if (beanName.equals(val)) return componentBean;
             }
-            if (beanAnnotation instanceof Controller) {
+            else if (beanAnnotation instanceof Controller) {
                 String val = ((Controller) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }
+            else if (beanAnnotation instanceof Repository) {
+                String val = ((Repository) beanAnnotation).beanName();
+                if (beanName.equals(val)) return componentBean;
+            }else if (beanAnnotation instanceof Bean) {
+                String val = ((Bean) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }else if (beanAnnotation instanceof Autowired) {
+                String val = ((Autowired) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }else if (beanAnnotation instanceof Component) {
+                String val = ((Component) beanAnnotation).value().trim();
+                if (beanName.equals(val)) return componentBean;
+            }else if (beanAnnotation instanceof Resource) {
+                String val = ((Resource) beanAnnotation).value().trim();
                 if (beanName.equals(val)) return componentBean;
             }
         }

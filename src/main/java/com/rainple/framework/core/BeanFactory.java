@@ -74,8 +74,10 @@ public class BeanFactory {
     }
 
     public Object getBean(Class clazz){
-        String className = ClassUtils.lowerFirstCase(clazz.getSimpleName());
-        return ioc.get(className);
+        if (clazz.isInterface())
+            return getBean(clazz.getName());
+        else
+            return ioc.get(ClassUtils.lowerFirstCase(clazz.getSimpleName()));
     }
 
     public void clear(){

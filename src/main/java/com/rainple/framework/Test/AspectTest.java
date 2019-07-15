@@ -48,17 +48,17 @@ public class AspectTest {
         System.out.println("在* com.rainple.framework.controller.UserController.*(..)之前调用");
     }
 
-    @Before(value = "* com.rainple.framework.controller.UserController.*(..)",order = 10)
+    @After(value = "* com.rainple.framework.controller.UserController.*(..)",order = 10)
     public void testAspect5(){
         System.out.println("在* com.rainple.framework.controller.UserController.*(..)后调用10");
     }
 
-    @Before(value = "* com.rainple.framework.controller.UserController.get2(..)",order = 30)
+    @After(value = "* com.rainple.framework.controller.UserController.get2(..)",order = 30)
     public void testAspect6(){
         System.out.println("在* com.rainple.framework.controller.UserController.*(..)之后调用30");
     }
 
-    @Before(value = "* com.rainple.framework.controller.UserController.get2(..)",order = 5)
+    @After(value = "* com.rainple.framework.controller.UserController.get2(..)",order = 5)
     public void testAspect7(){
         System.out.println("在* com.rainple.framework.controller.UserController.*(..)之后调用5");
     }

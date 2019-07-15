@@ -19,6 +19,7 @@ import com.rainple.framework.core.*;
 import com.rainple.framework.core.filter.ControllerHandlerChain;
 import com.rainple.framework.core.filter.HandlerChain;
 import com.rainple.framework.utils.ClassUtils;
+import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
 import javax.servlet.ServletConfig;
@@ -152,10 +153,11 @@ public class DispatcherServlet extends HttpServlet {
                     field.setAccessible(true);
                     Autowired autowired = field.getAnnotation(Autowired.class);
                     String beanName = autowired.value().trim();
+                    Object bean;
                     if ("".equals(beanName)){
-                        beanName = field.getType().getName();
-                    }
-                    Object bean = ioc.get(beanName);
+                        bean = beanFactory.getBean(field.getType());
+                    }else
+                        bean = ioc.get(beanName);
                     if (bean == null){
                         throw  new RuntimeException("can not found bean :" + beanName);
                     }
@@ -177,7 +179,7 @@ public class DispatcherServlet extends HttpServlet {
         logger.info("正在初始化Bean...");
         if (beanClass.isEmpty())
             return;
-        List<Class> beans = beanClass;
+        List<Class> beans = new ArrayList<>(beanClass);
         List<BeanInstanceHandler> beanHandlers = ClassUtils.getChildFromSuperToInstance(BeanInstanceHandler.class);
         BeanInstanceHandlerChain chain = new BeanInstanceHandlerChain(beanHandlers,beans);
         chain.proceed();
@@ -235,7 +237,6 @@ public class DispatcherServlet extends HttpServlet {
             }
             //controller层的方法都是使用反射调用，所以不需要生成代理类，只需要在反射调用前后调用即可
             if (target.getClass().isAnnotationPresent(Controller.class)) {
-
                 Object bean = beanFactory.getBean(clazz);
                 if (bean == null)
                     bean = ClassUtils.newInstance(clazz);
@@ -322,6 +323,19 @@ public class DispatcherServlet extends HttpServlet {
         //创建代理类
         ProxyMethodHandler proxyMethodHandler = new ProxyMethodHandler(proxyMethodHandlers);
         Object proxy = proxyMethodHandler.getProxy(target);
+        Class<?> superclass = proxy.getClass().getSuperclass();
+        for (Field field : superclass.getDeclaredFields()) {
+            if (field.isAnnotationPresent(Autowired.class)) {
+                Class<?> type = field.getType();
+                Autowired autowired = field.getAnnotation(Autowired.class);
+                String value = autowired.value();
+                if (StringUtils.isNotEmpty(value)) {
+                    value = ClassUtils.lowerFirstCase(type.getSimpleName());
+                    ClassUtils.setField(proxy,field,beanFactory.getBean(value));
+                } else
+                    ClassUtils.setField(proxy,field,beanFactory.getBean(type));
+            }
+        }
         //这里创建的代理会覆盖掉已经实例化的bean
         for (Class<?> aClass : target.getClass().getInterfaces()) {
             beanFactory.putBeanForce(aClass.getName(),proxy);

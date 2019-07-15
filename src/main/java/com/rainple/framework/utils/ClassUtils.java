@@ -100,6 +100,15 @@ public class ClassUtils {
         }
     }
 
+    public static void setField(Object instance,Field field,Object value) {
+        field.setAccessible(true);
+        try {
+            field.set(instance,value);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
     public static void setField(Object instance, Field field, String value){
         field.setAccessible(true);
         try {
