@@ -179,9 +179,8 @@ public class DispatcherServlet extends HttpServlet {
         logger.info("正在初始化Bean...");
         if (beanClass.isEmpty())
             return;
-        List<Class> beans = new ArrayList<>(beanClass);
         List<BeanInstanceHandler> beanHandlers = ClassUtils.getChildFromSuperToInstance(BeanInstanceHandler.class);
-        BeanInstanceHandlerChain chain = new BeanInstanceHandlerChain(beanHandlers,beans);
+        BeanInstanceHandlerChain chain = new BeanInstanceHandlerChain(beanHandlers,beanClass);
         chain.proceed();
         logger.info("初始化Bean完成....");
     }

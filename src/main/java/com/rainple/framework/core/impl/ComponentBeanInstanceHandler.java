@@ -16,7 +16,7 @@ import java.lang.annotation.Annotation;
 public class ComponentBeanInstanceHandler extends BeanInstanceHandler {
     @Override
     protected Object handlerProcess(Class clazz) {
-        if (clazz.isAssignableFrom(HandlerInterceptor.class)) {
+        if (HandlerInterceptor.class.isAssignableFrom(clazz)) {
             Object instance = ClassUtils.newInstance(clazz);
             HandlerInterceptorSupporter.handlerInterceptors.add((HandlerInterceptor) instance);
             return instance;

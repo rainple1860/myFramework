@@ -8,6 +8,8 @@ import com.rainple.framework.annotation.RequestMapping;
 import com.rainple.framework.annotation.ResponseBody;
 import com.rainple.framework.core.filter.HandlerChain;
 import com.rainple.framework.core.filter.HandlerInterceptorSupporter;
+import com.rainple.framework.modal.ModalAndView;
+import com.rainple.framework.modal.TemplateEngine;
 import com.rainple.framework.utils.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -148,17 +150,25 @@ public class HandlerMappingSupporter {
                         subfix = ".jsp";
                     if (StringUtils.isEmpty(prefix))
                         throw new RuntimeException("请求路径配置错误");
-                    if (!(result instanceof String))
-                        throw new RuntimeException("页面返回转发路径类型必须为String类型");
-                    if (((String) result).startsWith("redirect:")){
-                        result = ((String) result).replace("redirect:","");
-                        String path = (contextPath + "/" + prefix + "/" + result + subfix).replaceAll("/+", "/");
+                    String root = "";
+                    if (result instanceof String) {
+                        root = (String) result;
+                    }else if (result instanceof ModalAndView) {
+                        TemplateEngine templateEngine = new TemplateEngine((ModalAndView) result);
+                        String page = templateEngine.page();
+                        resp.setContentType("text/html;charset=utf-8");
+                        resp.getWriter().print(page);
+                        return;
+                    }
+                    if (root.startsWith("redirect:")) {
+                        root = root.replace("redirect:", "");
+                        String path = (contextPath + "/" + prefix + "/" + root + subfix).replaceAll("/+", "/");
                         logger.info("转发路径 : " + path);
                         resp.sendRedirect(path);
-                    }else {
-                        String path = (contextPath + "/" + prefix + "/" + result + subfix).replaceAll("/+", "/");
+                    } else {
+                        String path = (contextPath + "/" + prefix + "/" + root + subfix).replaceAll("/+", "/");
                         logger.info("请求路径 : " + path);
-                        req.getRequestDispatcher(path).forward(req,resp);
+                        req.getRequestDispatcher(path).forward(req, resp);
                     }
                 }
             } catch (Exception e) {
@@ -167,9 +177,9 @@ public class HandlerMappingSupporter {
         }
     }
 
-    private Object invokeChain(Object instance, Method method, Object[] params, HandlerInterceptorSupporter handlerInterceptorSupportor) throws InvocationTargetException, IllegalAccessException {
+    private Object invokeChain(Object instance, Method method, Object[] params, HandlerInterceptorSupporter handlerInterceptorSupporter) throws InvocationTargetException, IllegalAccessException {
         HandlerChain handlerChain = filterMap.get(method);
-        handlerInterceptorSupportor.postHandle();
+        handlerInterceptorSupporter.postHandle();
         if (handlerChain != null)
             return handlerChain.handle(instance,method,params);
         else

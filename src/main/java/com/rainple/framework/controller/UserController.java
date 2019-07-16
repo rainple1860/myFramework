@@ -4,6 +4,8 @@ package com.rainple.framework.controller;
 import com.rainple.framework.annotation.*;
 import com.rainple.framework.bean.User;
 import com.rainple.framework.core.BeanFactory;
+import com.rainple.framework.modal.Modal;
+import com.rainple.framework.modal.ModalAndView;
 import com.rainple.framework.service.UserService;
 
 import java.util.List;
@@ -74,8 +76,12 @@ public class UserController {
     }
 
     @RequestMapping("hello")
-    public String toHello(){
-        return "hello";
+    public ModalAndView toHello(){
+        Modal modal = new Modal();
+        modal.put("name","rainple");
+        modal.put("age",18.0);
+        modal.put("title","这是一个title");
+        return new ModalAndView("hello",modal);
     }
 
 }
